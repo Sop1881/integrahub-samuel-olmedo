@@ -1,18 +1,21 @@
 """
 Punto de entrada de IntegraHub.
 
-Esqueleto caminante: solo registra el endpoint de perfil con datos
-estaticos. La orquestacion real, la resiliencia y el contrato canonico
-definitivo se agregan en cortes verticales posteriores.
+Arranca el logging estructurado antes de registrar rutas, para que
+cualquier llamada a un proveedor (incluso durante el primer request)
+quede logueada.
 """
 
 from fastapi import FastAPI
 
 from app.api.v1.customers import router as customers_router
+from app.core.logging_config import configure_logging
+
+configure_logging()
 
 app = FastAPI(
     title="IntegraHub",
-    description="Servicio de agregacion de perfil de cliente (esqueleto caminante).",
+    description="Servicio de agregación de perfil de cliente.",
     version="0.1.0",
 )
 

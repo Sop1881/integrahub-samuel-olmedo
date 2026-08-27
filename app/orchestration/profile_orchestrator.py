@@ -41,7 +41,7 @@ _productos_client = ProductosClient()
 _fx_client = FxClient()
 
 
-async def get_profile(customer_id: str, convert: bool = False) -> CustomerProfile:
+async def get_profile(customer_id: str, request_id: str, convert: bool = False) -> CustomerProfile:
     warnings: list[ProfileWarning] = []
     sources: dict[str, str] = {
         "core": "ok",
@@ -50,8 +50,8 @@ async def get_profile(customer_id: str, convert: bool = False) -> CustomerProfil
     }
 
     core_result, productos_result = await asyncio.gather(
-        _core_client.fetch(customer_id),
-        _productos_client.fetch(customer_id),
+        _core_client.fetch(customer_id, request_id),
+        _productos_client.fetch(customer_id, request_id),
         return_exceptions=True,
     )
 
@@ -106,7 +106,7 @@ async def get_profile(customer_id: str, convert: bool = False) -> CustomerProfil
     # importar el resultado.
     if convert and purchase_summary is not None:
         try:
-            fx_dto = await _fx_client.fetch(customer_id)
+            fx_dto = await _fx_client.fetch(customer_id, request_id)
             purchase_summary.convertedAmounts = to_converted_amounts(
                 fx_dto, purchase_summary.totalSpentUSD
             )

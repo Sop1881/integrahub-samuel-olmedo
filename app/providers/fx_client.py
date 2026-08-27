@@ -10,7 +10,14 @@ que no se llama a FX en cada request, tal como pide el enunciado.
 El parámetro `customer_id` de `fetch()` se mantiene por compatibilidad
 con la interfaz común `ProviderClient`, pero no se usa: FX no depende
 del cliente.
+
+`fetch()` loguea exactamente una vez por invocación, indicando además
+si la respuesta vino de caché (`cached: true`, latencia ~0) o de una
+llamada real de red (`cached: false`, latencia total incluyendo
+reintentos).
 """
+
+import time
 
 import httpx
 
@@ -23,6 +30,7 @@ from app.core.exceptions import (
     ProviderTimeoutError,
 )
 from app.core.http_client_factory import create_http_client
+from app.core.logging_config import log_provider_call
 from app.models.provider_dto import FxRatesDTO
 from app.providers.base import ProviderClient
 from app.resilience.retry_policy import fx_retry_policy
@@ -35,22 +43,37 @@ class FxClient(ProviderClient[FxRatesDTO]):
         self._base_url = base_url or settings.fx_base_url
         self._cache = cache or TTLCache[FxRatesDTO](ttl_seconds=settings.fx_cache_ttl_seconds)
 
-    async def fetch(self, customer_id: str = "") -> FxRatesDTO:
+    async def fetch(self, customer_id: str, request_id: str) -> FxRatesDTO:
         cached = self._cache.get()
         if cached is not None:
+            log_provider_call(request_id, "fx", "ok", 0.0, cached=True)
             return cached
 
-        result = await self._fetch_from_provider()
+        start = time.monotonic()
+        try:
+            result = await self._fetch_from_provider(request_id)
+        except Exception as exc:
+            log_provider_call(
+                request_id,
+                "fx",
+                "failed",
+                (time.monotonic() - start) * 1000,
+                reason=type(exc).__name__,
+                cached=False,
+            )
+            raise
+        log_provider_call(request_id, "fx", "ok", (time.monotonic() - start) * 1000, cached=False)
+
         self._cache.set(result)
         return result
 
     @fx_retry_policy
-    async def _fetch_from_provider(self) -> FxRatesDTO:
+    async def _fetch_from_provider(self, request_id: str) -> FxRatesDTO:
         url = f"{self._base_url}/v1/latest?base=USD&symbols=EUR,GBP"
 
         try:
             async with create_http_client(FX_TIMEOUT) as client:
-                response = await client.get(url)
+                response = await client.get(url, headers={"X-Request-Id": request_id})
         except httpx.TimeoutException as exc:
             raise ProviderTimeoutError(f"FX: timeout ({exc})") from exc
         except httpx.RequestError as exc:
