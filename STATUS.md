@@ -9,7 +9,7 @@
 * CORE y PRODUCTOS ejecutados de forma concurrente.
 * Timeouts por proveedor.
 * Reintentos con backoff y sin retry en errores 4xx.
-* Degradación ante fallos de CORE y PRODUCTOS con HTTP 200, `partial` y `warnings`.
+* Degradación ante fallos de proveedores con HTTP 200, partial y warnings; se validó localmente PRODUCTOS con un stub HTTP 500. La degradación de CORE está implementada, pero no se realizó una prueba local equivalente de 5xx/timeout.
 * CORE `404` tratado como cliente inexistente y convertido en HTTP 404.
 * Validación de `id` inválido con HTTP 400.
 
