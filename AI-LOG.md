@@ -213,11 +213,4 @@ no lo detectó de forma proactiva al proponer la prueba original.
 
 ## Nota de honestidad sobre pruebas ejecutadas
 
-El entorno en el que se generó este código **no tiene acceso a red**. Se
-verificó exhaustivamente que todos los archivos compilan (`py_compile`)
-y se revisó la lógica manualmente en cada paso, pero **ninguno de los
-ejemplos de `curl` ni de JSON de respuesta de este proyecto fue ejecutado
-contra las APIs reales** (dummyjson.com, frankfurter.dev) dentro de este
-entorno de desarrollo. Esto se señaló explícitamente en el propio
-`README.md` y debe verificarse corriendo el proyecto localmente antes de
-la entrega.
+Durante el desarrollo en el entorno de Claude no fue posible realizar llamadas de red contra los proveedores externos, por lo que allí se verificó la compilación y consistencia del código. La validación funcional se realizó posteriormente en el entorno local del proyecto, donde se ejecutaron pruebas reales contra CORE (dummyjson.com), PRODUCTOS (dummyjson.com) y FX (frankfurter.dev). También se probó localmente la degradación de PRODUCTOS mediante un stub que devolvía HTTP 500, verificando que se realizaran los reintentos y que el endpoint respondiera 200 con partial: true. Se validó además la propagación de X-Request-Id y los logs estructurados de CORE, PRODUCTOS y FX.

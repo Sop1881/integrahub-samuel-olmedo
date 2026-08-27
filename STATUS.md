@@ -34,7 +34,9 @@
 
 ## Validaciones realizadas
 
-Se validó localmente el caso feliz de CORE + PRODUCTOS, el caso de cliente inexistente, la conversión mediante FX, la degradación de PRODUCTOS mediante un stub HTTP 500 con reintentos y la propagación de `X-Request-Id` junto con los logs estructurados.
+Se validó localmente el caso feliz de CORE + PRODUCTOS, el caso de cliente inexistente en CORE (404), la validación de `id` inválido (400), la conversión mediante FX con `convert=true`, el uso real del caché TTL de FX, la degradación de PRODUCTOS mediante un stub HTTP 500 con 3 intentos de retry y respuesta HTTP 200 con `partial: true`, y la propagación de `X-Request-Id` junto con los logs estructurados de los proveedores.
+
+No se realizó una prueba local equivalente de timeout/5xx para CORE.
 
 ## Pendientes
 
