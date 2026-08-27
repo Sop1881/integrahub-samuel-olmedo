@@ -1,11 +1,5 @@
 """
 Endpoint temporal del esqueleto caminante.
-
-IMPORTANTE: esta versión NO llama a ningún proveedor real, NO implementa
-resiliencia, NO implementa el contrato canónico definitivo ni autenticacion.
-Su unico objetivo es demostrar que el servicio responde 200 de punta a
-punta con una forma de respuesta cercana a la que tendra el contrato final.
-Sera reemplazado en el siguiente corte vertical (orquestacion real).
 """
 
 from fastapi import APIRouter
