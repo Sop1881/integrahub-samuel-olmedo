@@ -1,10 +1,6 @@
 """
 Contrato canónico: el modelo de salida propio de IntegraHub,
 independiente del formato de cualquier proveedor.
-
-Nota de este corte: `purchaseSummary` todavía es un dict crudo
-(placeholder) porque PRODUCTOS no está implementado aún — se
-formalizará como modelo propio en el siguiente corte vertical.
 """
 
 from typing import Dict, List, Optional
@@ -33,6 +29,25 @@ class PersonalInfo(BaseModel):
     address: Optional[Address] = None
 
 
+class Order(BaseModel):
+    orderId: str
+    itemCount: int
+    totalUSD: float
+
+
+class PurchaseSummary(BaseModel):
+    """
+    None si PRODUCTOS falla (ver profile_orchestrator.py). Si el
+    cliente no tiene compras, NO es None: es un objeto válido con
+    todo en cero — es un caso de negocio normal, no una degradación.
+    """
+
+    totalOrders: int
+    totalItemsPurchased: int
+    totalSpentUSD: float
+    orders: List[Order] = []
+
+
 class ProfileWarning(BaseModel):
     """
     Nombrado explícitamente distinto del builtin `Warning` de Python para
@@ -54,5 +69,5 @@ class Meta(BaseModel):
 class CustomerProfile(BaseModel):
     customerId: str
     personalInfo: PersonalInfo
-    purchaseSummary: Optional[dict] = None
+    purchaseSummary: Optional[PurchaseSummary] = None
     meta: Meta

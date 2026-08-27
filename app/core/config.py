@@ -8,6 +8,7 @@ import os
 
 class Settings:
     core_base_url: str = os.getenv("CORE_BASE_URL", "https://dummyjson.com")
+    productos_base_url: str = os.getenv("PRODUCTOS_BASE_URL", "https://dummyjson.com")
 
 
 settings = Settings()

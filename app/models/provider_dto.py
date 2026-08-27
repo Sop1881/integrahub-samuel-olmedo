@@ -12,7 +12,7 @@ llegar al mapper. La whitelist real vuelve a aplicarse en el mapper
 estructural.
 """
 
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -46,3 +46,30 @@ class CoreUserDTO(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[CoreAddressDTO] = None
+
+
+class ProductosCartDTO(BaseModel):
+    """
+    Un carrito individual de la respuesta de PRODUCTOS
+    (GET https://dummyjson.com/carts/user/{id}).
+
+    Solo se toman los totales ya calculados por el proveedor
+    (`total`, `totalQuantity`) — deliberadamente NO se incluye
+    `products[]`: el contrato canónico es de perfil agregado, no de
+    detalle de catálogo, así que un cambio en la estructura de
+    productos de PRODUCTOS no debería romper nuestro mapeo.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    total: float
+    totalQuantity: int
+
+
+class ProductosResponseDTO(BaseModel):
+    """Forma cruda (recortada) de la respuesta completa de PRODUCTOS."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    carts: List[ProductosCartDTO] = []

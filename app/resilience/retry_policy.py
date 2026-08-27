@@ -8,7 +8,7 @@ si el cliente de un proveedor las lanza, tenacity las deja pasar sin
 reintentar, tal como exige la prueba.
 """
 
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential, wait_fixed
 
 from app.core.exceptions import (
     Provider5xxError,
@@ -28,14 +28,15 @@ core_retry_policy = retry(
     reraise=True,
 )
 
-# Reservado para el siguiente corte vertical (PRODUCTOS):
-# 3 intentos totales, backoff exponencial 300ms -> 900ms.
-# productos_retry_policy = retry(
-#     stop=stop_after_attempt(3),
-#     wait=wait_exponential(multiplier=0.3, min=0.3, max=0.9),
-#     retry=retry_if_exception_type(RETRYABLE_EXCEPTIONS),
-#     reraise=True,
-# )
+# PRODUCTOS: 3 intentos totales (1 original + 2 retries), backoff
+# exponencial 300ms -> 900ms. Tan crítico como CORE para el contrato,
+# pero con payload más pesado, damos un intento extra antes de degradar.
+productos_retry_policy = retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=0.3, min=0.3, max=0.9),
+    retry=retry_if_exception_type(RETRYABLE_EXCEPTIONS),
+    reraise=True,
+)
 
 # Reservado para el siguiente corte vertical (FX):
 # 2 intentos totales, backoff fijo de 300ms (igual que CORE).

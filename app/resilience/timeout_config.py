@@ -9,8 +9,7 @@ import httpx
 
 CORE_TIMEOUT = httpx.Timeout(connect=2.0, read=3.0, write=3.0, pool=3.0)
 
-# Reservado para el siguiente corte vertical (PRODUCTOS):
-# PRODUCTOS_TIMEOUT = httpx.Timeout(connect=2.0, read=4.0, write=4.0, pool=4.0)
+PRODUCTOS_TIMEOUT = httpx.Timeout(connect=2.0, read=4.0, write=4.0, pool=4.0)
 
 # Reservado para el siguiente corte vertical (FX):
 # FX_TIMEOUT = httpx.Timeout(connect=2.0, read=3.0, write=3.0, pool=3.0)
