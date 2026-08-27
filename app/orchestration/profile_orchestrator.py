@@ -1,11 +1,10 @@
 """
 Orquestador del caso de uso "perfil de cliente".
 
-Este corte integra CORE + PRODUCTOS en paralelo. FX se sigue marcando
-explícitamente como "not_implemented" en `sources` — todavía no se
-llama ni afecta `partial`.
+Este corte integra CORE + PRODUCTOS en paralelo, y FX de forma
+condicional y secuencial después de resolver ambos.
 
-Diseño de la concurrencia: CORE y PRODUCTOS se lanzan a la vez con
+Diseño de la concurrencia CORE/PRODUCTOS: se lanzan a la vez con
 `asyncio.gather(..., return_exceptions=True)`, cada uno con su propio
 timeout y política de retry ya aplicados dentro de su cliente. Un
 fallo de uno nunca cancela ni bloquea al otro.
@@ -16,7 +15,13 @@ resultado de PRODUCTOS, incluso si PRODUCTOS respondió con éxito: se
 descarta ese resultado y se propaga el 404. Es el costo aceptado de
 correr ambos en paralelo (en vez de esperar a CORE antes de llamar a
 PRODUCTOS): se gasta una llamada de más en el caso 404, a cambio de
-paralelismo real en el caso feliz — trade-off documentado en AI-LOG.md.
+paralelismo real en el caso feliz.
+
+FX es distinto: depende del resultado de PRODUCTOS (necesita
+`totalSpentUSD` para convertir) y es P1/opcional, así que se resuelve
+después del gather, solo si se pidió `convert=true` y PRODUCTOS tuvo
+éxito. Un fallo de FX nunca convierte la respuesta en error ni activa
+`partial` — solo deja `convertedAmounts` ausente.
 """
 
 import asyncio
@@ -24,21 +29,24 @@ from datetime import datetime, timezone
 
 from app.core.exceptions import CustomerNotFoundError, ProviderError
 from app.mapping.core_mapper import empty_personal_info, to_personal_info
+from app.mapping.fx_mapper import to_converted_amounts
 from app.mapping.productos_mapper import to_purchase_summary
 from app.models.canonical import CustomerProfile, Meta, ProfileWarning
 from app.providers.core_client import CoreClient
+from app.providers.fx_client import FxClient
 from app.providers.productos_client import ProductosClient
 
 _core_client = CoreClient()
 _productos_client = ProductosClient()
+_fx_client = FxClient()
 
 
-async def get_profile(customer_id: str) -> CustomerProfile:
+async def get_profile(customer_id: str, convert: bool = False) -> CustomerProfile:
     warnings: list[ProfileWarning] = []
     sources: dict[str, str] = {
         "core": "ok",
         "productos": "ok",
-        "fx": "not_implemented",
+        "fx": "skipped",
     }
 
     core_result, productos_result = await asyncio.gather(
@@ -92,6 +100,34 @@ async def get_profile(customer_id: str) -> CustomerProfile:
         raise productos_result
     else:
         purchase_summary = to_purchase_summary(productos_result)
+
+    # FX: solo se intenta si se pidió conversión Y hay un total que
+    # convertir (PRODUCTOS tuvo éxito). Nunca afecta `partial`, sin
+    # importar el resultado.
+    if convert and purchase_summary is not None:
+        try:
+            fx_dto = await _fx_client.fetch(customer_id)
+            purchase_summary.convertedAmounts = to_converted_amounts(
+                fx_dto, purchase_summary.totalSpentUSD
+            )
+            sources["fx"] = "ok"
+        except ProviderError as exc:
+            sources["fx"] = "failed"
+            warnings.append(
+                ProfileWarning(
+                    provider="fx",
+                    reason=type(exc).__name__,
+                    detail=str(exc),
+                )
+            )
+        except BaseException as exc:
+            raise exc
+    elif convert and purchase_summary is None:
+        # Se pidió conversión pero no hay total que convertir porque
+        # PRODUCTOS falló: no se intenta la llamada a FX.
+        sources["fx"] = "skipped"
+    # else: convert=False -> sources["fx"] ya quedó en "skipped" por
+    # defecto, sin necesidad de warning (fue una elección, no un fallo).
 
     partial = sources["core"] == "failed" or sources["productos"] == "failed"
 

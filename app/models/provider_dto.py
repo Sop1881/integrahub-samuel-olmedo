@@ -12,7 +12,7 @@ llegar al mapper. La whitelist real vuelve a aplicarse en el mapper
 estructural.
 """
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -73,3 +73,19 @@ class ProductosResponseDTO(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     carts: List[ProductosCartDTO] = []
+
+
+class FxRatesDTO(BaseModel):
+    """
+    Forma cruda (recortada) de la respuesta de FX
+    (GET https://api.frankfurter.dev/v1/latest?base=USD&symbols=EUR,GBP).
+
+    Solo se toman `date` (para trazabilidad de qué tasa se usó) y
+    `rates` (EUR/GBP) — se ignora `base` y `amount`, que no aportan al
+    contrato canónico.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    date: str
+    rates: Dict[str, float]

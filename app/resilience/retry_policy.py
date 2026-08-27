@@ -38,11 +38,12 @@ productos_retry_policy = retry(
     reraise=True,
 )
 
-# Reservado para el siguiente corte vertical (FX):
-# 2 intentos totales, backoff fijo de 300ms (igual que CORE).
-# fx_retry_policy = retry(
-#     stop=stop_after_attempt(2),
-#     wait=wait_fixed(0.3),
-#     retry=retry_if_exception_type(RETRYABLE_EXCEPTIONS),
-#     reraise=True,
-# )
+# FX: 2 intentos totales (1 original + 1 retry), backoff fijo de
+# 300ms (igual que CORE). Es P1/opcional — si falla, no vale la pena
+# invertir más de 1 retry en algo que no afecta partial.
+fx_retry_policy = retry(
+    stop=stop_after_attempt(2),
+    wait=wait_fixed(0.3),
+    retry=retry_if_exception_type(RETRYABLE_EXCEPTIONS),
+    reraise=True,
+)

@@ -35,6 +35,18 @@ class Order(BaseModel):
     totalUSD: float
 
 
+class ConvertedAmounts(BaseModel):
+    """
+    Ausente (None en purchaseSummary) si no se solicitó `convert=true`,
+    o si se solicitó pero FX falló. Nunca activa `partial` — FX es
+    P1/opcional, ver profile_orchestrator.py.
+    """
+
+    EUR: Optional[float] = None
+    GBP: Optional[float] = None
+    rateDate: Optional[str] = None
+
+
 class PurchaseSummary(BaseModel):
     """
     None si PRODUCTOS falla (ver profile_orchestrator.py). Si el
@@ -46,6 +58,7 @@ class PurchaseSummary(BaseModel):
     totalItemsPurchased: int
     totalSpentUSD: float
     orders: List[Order] = []
+    convertedAmounts: Optional[ConvertedAmounts] = None
 
 
 class ProfileWarning(BaseModel):
